@@ -1,0 +1,73 @@
+name: social-backend
+
+x-app-env: &app-env
+  DATABASE_URL: postgresql+psycopg://social:social@db:5432/social
+  REDIS_URL: redis://cache:6379/0
+  CELERY_BROKER_URL: redis://broker:6379/0
+  CELERY_RESULT_BACKEND: redis://broker:6379/1
+  JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+
+x-app-base: &app-base
+  build: .
+  environment: *app-env
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+    cache:
+      condition: service_healthy
+    broker:
+      condition: service_healthy
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: social
+      POSTGRES_PASSWORD: social
+      POSTGRES_DB: social
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U social -d social"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Cache: evictable (LRU). Losing keys only costs a database read.
+  cache:
+    image: redis:7-alpine
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Broker: must NOT evict queued tasks, so it gets its own instance and durable persistence.
+  broker:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    <<: *app-base
+    ports:
+      - "8000:8000"
+
+  worker:
+    <<: *app-base
+    command: ["celery", "-A", "app.celery_app:celery_app", "worker", "--loglevel=INFO", "--concurrency=4"]
+
+  beat:
+    <<: *app-base
+    command: ["celery", "-A", "app.celery_app:celery_app", "beat", "--loglevel=INFO"]
+
+volumes:
+  pgdata:
