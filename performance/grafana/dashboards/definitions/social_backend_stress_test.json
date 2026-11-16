@@ -1,0 +1,477 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": ["smoke"],
+      "title": "Smoke Dashboard",
+      "type": "link",
+      "url": "/d/social-backend-perf"
+    },
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": ["load"],
+      "title": "Load Dashboard",
+      "type": "link",
+      "url": "/d/social-backend-load-test"
+    }
+  ],
+  "liveNow": true,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "🔥 Saturation & Capacity Breaking Point Overview",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "short",
+          "min": 0,
+          "max": 200
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 1 },
+      "id": 1,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["max"], "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "k6_vus or vector(0)",
+          "legendFormat": "Active VUs",
+          "refId": "A"
+        }
+      ],
+      "title": "Peak Concurrency Stress (VUs)",
+      "type": "gauge"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 1 },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["max"], "values": false }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "sum(rate(k6_http_reqs_total[10s])) or vector(0)",
+          "legendFormat": "Max Throughput",
+          "refId": "A"
+        }
+      ],
+      "title": "Peak Throughput Reached (RPS)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "#EAB839", "value": 500 },
+              { "color": "red", "value": 1500 }
+            ]
+          },
+          "unit": "ms"
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 1 },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["max"], "values": false }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "k6_http_req_duration_p95 or vector(0)",
+          "legendFormat": "Peak p95 Latency",
+          "refId": "A"
+        }
+      ],
+      "title": "Worst-Case p95 Latency",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "#EAB839", "value": 2 },
+              { "color": "red", "value": 10 }
+            ]
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 25
+        }
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 1 },
+      "id": 4,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "((sum(rate(k6_http_req_failed[15s])) / sum(rate(k6_http_reqs_total[15s]))) * 100) or vector(0)",
+          "legendFormat": "Current Error %",
+          "refId": "A"
+        }
+      ],
+      "title": "Error Rate (Cooldown Recovery Target: 0%)",
+      "type": "gauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 },
+      "id": 200,
+      "title": "📉 Saturation Knee: Concurrency vs Throughput vs Failures",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisLabel": "Active VUs (Left) / RPS (Right)",
+            "fillOpacity": 15,
+            "lineWidth": 2
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Throughput (RPS)" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "right" },
+              { "id": "unit", "value": "reqps" },
+              { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Active Concurrency (VUs)" },
+            "properties": [
+              { "id": "custom.axisPlacement", "value": "left" },
+              { "id": "unit", "value": "short" },
+              { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 8 },
+      "id": 5,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "k6_vus",
+          "legendFormat": "Active Concurrency (VUs)",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "sum(rate(k6_http_reqs_total[10s]))",
+          "legendFormat": "Throughput (RPS)",
+          "refId": "B"
+        }
+      ],
+      "title": "Saturation Knee (VU vs RPS Scalability Ceiling)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisLabel": "req/sec",
+            "fillOpacity": 25,
+            "lineWidth": 2,
+            "stacking": { "group": "A", "mode": "normal" }
+          },
+          "unit": "reqps"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Successful RPS" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Failed / Throttled RPS" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 8 },
+      "id": 6,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "sum(rate(k6_http_reqs_total[10s])) - sum(rate(k6_http_req_failed[10s]))",
+          "legendFormat": "Successful RPS",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "sum(rate(k6_http_req_failed[10s]))",
+          "legendFormat": "Failed / Throttled RPS",
+          "refId": "B"
+        }
+      ],
+      "title": "Successful vs. Failed Throughput Split",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+      "id": 300,
+      "title": "⏱️ Latency Percentile Escalation Spectrum & Degradation",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisLabel": "Latency",
+            "fillOpacity": 12,
+            "lineWidth": 2
+          },
+          "unit": "ms"
+        }
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 18 },
+      "id": 7,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max", "lastNotNull"] }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "k6_http_req_duration_max",
+          "legendFormat": "Max Latency",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "k6_http_req_duration_p99",
+          "legendFormat": "p99 Latency",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "k6_http_req_duration_p95",
+          "legendFormat": "p95 Latency",
+          "refId": "C"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "k6_http_req_duration_p90",
+          "legendFormat": "p90 Latency",
+          "refId": "D"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "k6_http_req_duration_med",
+          "legendFormat": "p50 (Median)",
+          "refId": "E"
+        }
+      ],
+      "title": "Latency Percentile Escalation (Hockey-Stick & Recovery)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisLabel": "Seconds",
+            "fillOpacity": 10,
+            "lineWidth": 2
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 18 },
+      "id": 8,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.95, sum by (le, handler) (rate(http_request_duration_seconds_bucket{job=\"social-api\"}[30s])))",
+          "legendFormat": "p95 {{handler}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Endpoint Latency Degradation (CPU vs DB vs Write Paths)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
+      "id": 400,
+      "title": "🚨 Error Breakdown, HTTP Status Codes & Failure Modes",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisLabel": "req/sec",
+            "fillOpacity": 25,
+            "lineWidth": 2,
+            "stacking": { "group": "A", "mode": "normal" }
+          },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "id": 9,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "sum by (status) (rate(http_requests_total{job=\"social-api\"}[15s]))",
+          "legendFormat": "HTTP {{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "HTTP Status Code Escalation (2xx vs 429 vs 5xx)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "#EAB839", "value": 2 },
+              { "color": "red", "value": 10 }
+            ]
+          },
+          "custom": {
+            "axisLabel": "%",
+            "fillOpacity": 25,
+            "lineWidth": 2
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "id": 10,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max", "lastNotNull"] }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "editorMode": "code",
+          "expr": "((sum(rate(k6_http_req_failed[15s])) / sum(rate(k6_http_reqs_total[15s]))) * 100) or vector(0)",
+          "legendFormat": "Failure % Timeline",
+          "refId": "A"
+        }
+      ],
+      "title": "Error Rate Spike & Recovery Timeline (%)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "2s",
+  "schemaVersion": 39,
+  "tags": ["k6", "stress-test", "social-backend", "saturation", "latency"],
+  "templating": { "list": [] },
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": { "refresh_intervals": ["1s", "2s", "5s", "10s"] },
+  "timezone": "browser",
+  "title": "Social Backend - Stress Testing & Saturation",
+  "uid": "social-backend-stress-test",
+  "version": 1
+}

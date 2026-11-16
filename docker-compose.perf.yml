@@ -99,6 +99,25 @@ services:
       - api
       - prometheus
 
+  k6-stress:
+    image: grafana/k6:0.51.0
+    volumes:
+      - ./performance/k6:/scripts:ro
+    environment:
+      TARGET_URL: http://api:8000
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
+      K6_PROMETHEUS_REMOTE_WRITE_URL: http://prometheus:9090/api/v1/write
+    command:
+      - run
+      - -o
+      - experimental-prometheus-rw
+      - /scripts/stress_test.js
+    profiles:
+      - perf-test
+    depends_on:
+      - api
+      - prometheus
+
 volumes:
   prometheus-data:
   grafana-data:
