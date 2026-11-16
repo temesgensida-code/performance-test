@@ -6,6 +6,8 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
+from prometheus_fastapi_instrumentator import Instrumentator
+
 from app import models  # noqa: F401  (registers ORM models with Base.metadata)
 from app.cache import redis_client
 from app.config import settings
@@ -33,6 +35,8 @@ app = FastAPI(
 API_PREFIX = "/api/v1"
 for router in (auth.router, users.router, posts.router, matches.router):
     app.include_router(router, prefix=API_PREFIX)
+
+Instrumentator().instrument(app).expose(app, endpoint="/metrics", tags=["ops"])
 
 
 @app.get("/health", tags=["ops"])

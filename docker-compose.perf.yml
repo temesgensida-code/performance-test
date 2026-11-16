@@ -1,0 +1,85 @@
+services:
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-remote-write-receiver"
+      - "--enable-feature=native-histograms"
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./performance/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    volumes:
+      - ./performance/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./performance/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./performance/grafana/dashboards/definitions:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    environment:
+      DATA_SOURCE_NAME: postgresql://social:social@db:5432/social?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis-cache-exporter:
+    image: oliver006/redis_exporter:v1.61.0
+    environment:
+      REDIS_ADDR: redis://cache:6379
+    depends_on:
+      cache:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis-broker-exporter:
+    image: oliver006/redis_exporter:v1.61.0
+    environment:
+      REDIS_ADDR: redis://broker:6379
+    depends_on:
+      broker:
+        condition: service_healthy
+    restart: unless-stopped
+
+  k6:
+    image: grafana/k6:0.51.0
+    volumes:
+      - ./performance/k6:/scripts:ro
+    environment:
+      TARGET_URL: http://api:8000
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
+      K6_PROMETHEUS_REMOTE_WRITE_URL: http://prometheus:9090/api/v1/write
+    command:
+      - run
+      - -o
+      - experimental-prometheus-rw
+      - /scripts/smoke_test.js
+    profiles:
+      - perf-test
+    depends_on:
+      - api
+      - prometheus
+
+volumes:
+  prometheus-data:
+  grafana-data:
