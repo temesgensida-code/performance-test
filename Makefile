@@ -1,4 +1,4 @@
-.PHONY: help perf-up perf-down perf-test smoke-test load-test stress-test spike-test soak-test concurrency-test perf-logs perf-clean
+.PHONY: help perf-up perf-down perf-test smoke-test load-test stress-test spike-test soak-test concurrency-test volume-test volume-seed perf-logs perf-clean
 
 help:
 	@echo "Performance Testing Environment Commands:"
@@ -9,6 +9,8 @@ help:
 	@echo "  make spike-test       - Run the k6 spike test (sudden 24x jump to 120 VUs & shock recovery)"
 	@echo "  make soak-test        - Run the k6 soak test (sustained 25 VUs, 30m endurance & leak check)"
 	@echo "  make concurrency-test - Run the k6 concurrency test (distributed locks, constraints, hotspot locks)"
+	@echo "  make volume-seed      - Bulk seed database with ~500k posts, 20k users, and 200k follows"
+	@echo "  make volume-test      - Run the k6 volume test (deep pagination & index traversal on 500k rows)"
 	@echo "  make perf-test        - Alias for smoke-test"
 	@echo "  make perf-down        - Stop and tear down performance test containers"
 	@echo "  make perf-logs        - Tail logs from all performance stack services"
@@ -36,6 +38,12 @@ soak-test:
 
 concurrency-test:
 	./scripts/run-test.sh --type=concurrency
+
+volume-seed:
+	python3 performance/scripts/seed_volume_data.py
+
+volume-test:
+	./scripts/run-test.sh --type=volume
 
 perf-down:
 	docker compose -f docker-compose.yml -f docker-compose.perf.yml down

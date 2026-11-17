@@ -29,7 +29,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -h|--help)
-            echo "Usage: $0 [--type=smoke|load|stress|spike|soak|concurrency] [--duration=30m] [--vus=25]"
+            echo "Usage: $0 [--type=smoke|load|stress|spike|soak|concurrency|volume] [--duration=30m] [--vus=25]"
             echo ""
             echo "Options:"
             echo "  --type=smoke         Run quick baseline sanity test (2 VUs for ~30s)"
@@ -38,20 +38,21 @@ while [[ $# -gt 0 ]]; do
             echo "  --type=spike         Run aggressive traffic spike test (instant 24x jump to 120 VUs & recovery)"
             echo "  --type=soak          Run long-running endurance soak test (sustained load over time)"
             echo "  --type=concurrency   Run concurrency & race condition test (distributed locks, constraints, hotspot locks)"
+            echo "  --type=volume        Run volume & deep pagination test against 500k-row database (30 VUs, 5m)"
             echo "  --duration=X         Duration for soak test (default: 30m, e.g. 1h, 2h)"
             echo "  --vus=N              Concurrency for soak test (default: 25 VUs)"
             exit 0
             ;;
         *)
             echo "Unknown argument: $1"
-            echo "Usage: $0 [--type=smoke|load|stress|spike|soak|concurrency]"
+            echo "Usage: $0 [--type=smoke|load|stress|spike|soak|concurrency|volume]"
             exit 1
             ;;
     esac
 done
 
-if [[ "${TEST_TYPE}" != "smoke" && "${TEST_TYPE}" != "load" && "${TEST_TYPE}" != "stress" && "${TEST_TYPE}" != "spike" && "${TEST_TYPE}" != "soak" && "${TEST_TYPE}" != "concurrency" ]]; then
-    echo "Error: Invalid test type '${TEST_TYPE}'. Must be 'smoke', 'load', 'stress', 'spike', 'soak', or 'concurrency'."
+if [[ "${TEST_TYPE}" != "smoke" && "${TEST_TYPE}" != "load" && "${TEST_TYPE}" != "stress" && "${TEST_TYPE}" != "spike" && "${TEST_TYPE}" != "soak" && "${TEST_TYPE}" != "concurrency" && "${TEST_TYPE}" != "volume" ]]; then
+    echo "Error: Invalid test type '${TEST_TYPE}'. Must be 'smoke', 'load', 'stress', 'spike', 'soak', 'concurrency', or 'volume'."
     exit 1
 fi
 
@@ -79,7 +80,13 @@ done
 
 echo ""
 echo "=========================================================="
-if [[ "${TEST_TYPE}" == "concurrency" ]]; then
+if [[ "${TEST_TYPE}" == "volume" ]]; then
+    echo " Executing k6 VOLUME Test (Deep pagination & index traversal on 500k-row database)"
+    echo "=========================================================="
+    docker compose -f docker-compose.yml -f docker-compose.perf.yml run --rm k6-volume
+    DASHBOARD_URL="http://localhost:3001/d/social-backend-volume-test"
+    DASHBOARD_NAME="Social Backend - Volume Testing (500k Rows)"
+elif [[ "${TEST_TYPE}" == "concurrency" ]]; then
     echo " Executing k6 CONCURRENCY Test (Distributed locks, unique constraints, hotspot row-locking)"
     echo "=========================================================="
     docker compose -f docker-compose.yml -f docker-compose.perf.yml run --rm k6-concurrency
