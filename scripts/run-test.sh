@@ -15,24 +15,25 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         -h|--help)
-            echo "Usage: $0 [--type=smoke|load|stress]"
+            echo "Usage: $0 [--type=smoke|load|stress|spike]"
             echo ""
             echo "Options:"
             echo "  --type=smoke    Run quick baseline sanity test (2 VUs for ~30s)"
             echo "  --type=load     Run expected-traffic load test (up to 40 VUs, multi-scenario)"
             echo "  --type=stress   Run step-up saturation stress test (up to 150+ VUs with recovery)"
+            echo "  --type=spike    Run aggressive traffic spike test (instant 24x jump to 120 VUs & recovery)"
             exit 0
             ;;
         *)
             echo "Unknown argument: $1"
-            echo "Usage: $0 [--type=smoke|load|stress]"
+            echo "Usage: $0 [--type=smoke|load|stress|spike]"
             exit 1
             ;;
     esac
 done
 
-if [[ "${TEST_TYPE}" != "smoke" && "${TEST_TYPE}" != "load" && "${TEST_TYPE}" != "stress" ]]; then
-    echo "Error: Invalid test type '${TEST_TYPE}'. Must be 'smoke', 'load', or 'stress'."
+if [[ "${TEST_TYPE}" != "smoke" && "${TEST_TYPE}" != "load" && "${TEST_TYPE}" != "stress" && "${TEST_TYPE}" != "spike" ]]; then
+    echo "Error: Invalid test type '${TEST_TYPE}'. Must be 'smoke', 'load', 'stress', or 'spike'."
     exit 1
 fi
 
@@ -60,7 +61,13 @@ done
 
 echo ""
 echo "=========================================================="
-if [[ "${TEST_TYPE}" == "stress" ]]; then
+if [[ "${TEST_TYPE}" == "spike" ]]; then
+    echo " Executing k6 SPIKE Test (Sudden 24x traffic surge to 120 VUs & recovery)"
+    echo "=========================================================="
+    docker compose -f docker-compose.yml -f docker-compose.perf.yml run --rm k6-spike
+    DASHBOARD_URL="http://localhost:3001/d/social-backend-spike-test"
+    DASHBOARD_NAME="Social Backend - Spike Testing & Shock Recovery"
+elif [[ "${TEST_TYPE}" == "stress" ]]; then
     echo " Executing k6 STRESS Test (Step-up saturation to 150+ VUs with recovery)"
     echo "=========================================================="
     docker compose -f docker-compose.yml -f docker-compose.perf.yml run --rm k6-stress

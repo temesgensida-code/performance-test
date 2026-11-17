@@ -1,4 +1,4 @@
-.PHONY: help perf-up perf-down perf-test smoke-test load-test stress-test perf-logs perf-clean
+.PHONY: help perf-up perf-down perf-test smoke-test load-test stress-test spike-test perf-logs perf-clean
 
 help:
 	@echo "Performance Testing Environment Commands:"
@@ -6,6 +6,7 @@ help:
 	@echo "  make smoke-test  - Run the k6 smoke test (2 VUs, ~30s sanity check)"
 	@echo "  make load-test   - Run the k6 load test (up to 40 VUs, multi-scenario expected traffic)"
 	@echo "  make stress-test - Run the k6 stress test (step-up to 150+ VUs, saturation & recovery)"
+	@echo "  make spike-test  - Run the k6 spike test (sudden 24x jump to 120 VUs & shock recovery)"
 	@echo "  make perf-test   - Alias for smoke-test"
 	@echo "  make perf-down   - Stop and tear down performance test containers"
 	@echo "  make perf-logs   - Tail logs from all performance stack services"
@@ -24,6 +25,9 @@ load-test:
 
 stress-test:
 	./scripts/run-test.sh --type=stress
+
+spike-test:
+	./scripts/run-test.sh --type=spike
 
 perf-down:
 	docker compose -f docker-compose.yml -f docker-compose.perf.yml down
