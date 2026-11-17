@@ -2,6 +2,8 @@
 set -euo pipefail
 
 TEST_TYPE="smoke"
+CUSTOM_DURATION="${SOAK_DURATION:-30m}"
+CUSTOM_VUS="${SOAK_VUS:-25}"
 
 # Parse command line flags
 while [[ $# -gt 0 ]]; do
@@ -14,26 +16,41 @@ while [[ $# -gt 0 ]]; do
             TEST_TYPE="$2"
             shift 2
             ;;
+        --duration=*)
+            CUSTOM_DURATION="${1#*=}"
+            shift
+            ;;
+        -d|--duration)
+            CUSTOM_DURATION="$2"
+            shift 2
+            ;;
+        --vus=*)
+            CUSTOM_VUS="${1#*=}"
+            shift
+            ;;
         -h|--help)
-            echo "Usage: $0 [--type=smoke|load|stress|spike]"
+            echo "Usage: $0 [--type=smoke|load|stress|spike|soak] [--duration=30m] [--vus=25]"
             echo ""
             echo "Options:"
-            echo "  --type=smoke    Run quick baseline sanity test (2 VUs for ~30s)"
-            echo "  --type=load     Run expected-traffic load test (up to 40 VUs, multi-scenario)"
-            echo "  --type=stress   Run step-up saturation stress test (up to 150+ VUs with recovery)"
-            echo "  --type=spike    Run aggressive traffic spike test (instant 24x jump to 120 VUs & recovery)"
+            echo "  --type=smoke     Run quick baseline sanity test (2 VUs for ~30s)"
+            echo "  --type=load      Run expected-traffic load test (up to 40 VUs, multi-scenario)"
+            echo "  --type=stress    Run step-up saturation stress test (up to 150+ VUs with recovery)"
+            echo "  --type=spike     Run aggressive traffic spike test (instant 24x jump to 120 VUs & recovery)"
+            echo "  --type=soak      Run long-running endurance soak test (sustained load over time)"
+            echo "  --duration=X     Duration for soak test (default: 30m, e.g. 1h, 2h)"
+            echo "  --vus=N          Concurrency for soak test (default: 25 VUs)"
             exit 0
             ;;
         *)
             echo "Unknown argument: $1"
-            echo "Usage: $0 [--type=smoke|load|stress|spike]"
+            echo "Usage: $0 [--type=smoke|load|stress|spike|soak]"
             exit 1
             ;;
     esac
 done
 
-if [[ "${TEST_TYPE}" != "smoke" && "${TEST_TYPE}" != "load" && "${TEST_TYPE}" != "stress" && "${TEST_TYPE}" != "spike" ]]; then
-    echo "Error: Invalid test type '${TEST_TYPE}'. Must be 'smoke', 'load', 'stress', or 'spike'."
+if [[ "${TEST_TYPE}" != "smoke" && "${TEST_TYPE}" != "load" && "${TEST_TYPE}" != "stress" && "${TEST_TYPE}" != "spike" && "${TEST_TYPE}" != "soak" ]]; then
+    echo "Error: Invalid test type '${TEST_TYPE}'. Must be 'smoke', 'load', 'stress', 'spike', or 'soak'."
     exit 1
 fi
 
@@ -61,7 +78,17 @@ done
 
 echo ""
 echo "=========================================================="
-if [[ "${TEST_TYPE}" == "spike" ]]; then
+if [[ "${TEST_TYPE}" == "soak" ]]; then
+    echo " Executing k6 SOAK Test (Long-running endurance: ${CUSTOM_VUS} VUs for ${CUSTOM_DURATION})"
+    echo "=========================================================="
+    SOAK_DURATION="${CUSTOM_DURATION}" SOAK_VUS="${CUSTOM_VUS}" \
+      docker compose -f docker-compose.yml -f docker-compose.perf.yml run --rm \
+      -e SOAK_DURATION="${CUSTOM_DURATION}" \
+      -e SOAK_VUS="${CUSTOM_VUS}" \
+      k6-soak
+    DASHBOARD_URL="http://localhost:3001/d/social-backend-soak-test"
+    DASHBOARD_NAME="Social Backend - Soak Testing & Long-Term Stability"
+elif [[ "${TEST_TYPE}" == "spike" ]]; then
     echo " Executing k6 SPIKE Test (Sudden 24x traffic surge to 120 VUs & recovery)"
     echo "=========================================================="
     docker compose -f docker-compose.yml -f docker-compose.perf.yml run --rm k6-spike
